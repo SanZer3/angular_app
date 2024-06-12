@@ -21,7 +21,7 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 // Construire l'image Docker
-                sh 'docker build -t votre-utilisateur/angular-app:latest .'
+                sh 'docker build -t sanzer3/angular-app:latest .'
             }
         }
 
@@ -33,16 +33,18 @@ pipeline {
                 
                 // Basculer entre les environnements bleu et vert
                 // Vérifier quel environnement est actuellement déployé
-                if (docker.inspect(name: blueContainer, returnStatus: true).status == 0) {
-                    // Si l'environnement bleu est actif, déployer sur l'environnement vert
-                    echo 'Déploiement sur l\'environnement vert'
-                    sh "docker stop $blueContainer || true"
-                    sh "docker run -d --name $greenContainer -p 8081:80 votre-utilisateur/angular-app:latest"
-                } else {
-                    // Sinon, déployer sur l'environnement bleu
-                    echo 'Déploiement sur l\'environnement bleu'
-                    sh "docker stop $greenContainer || true"
-                    sh "docker run -d --name $blueContainer -p 8080:80 votre-utilisateur/angular-app:latest"
+                script {
+                    if (docker.inspect(name: blueContainer, returnStatus: true).status == 0) {
+                        // Si l'environnement bleu est actif, déployer sur l'environnement vert
+                        echo 'Déploiement sur l\'environnement vert'
+                        sh "docker stop $blueContainer || true"
+                        sh "docker run -d --name $greenContainer -p 8081:80 sanzer3/angular-app:latest"
+                    } else {
+                        // Sinon, déployer sur l'environnement bleu
+                        echo 'Déploiement sur l\'environnement bleu'
+                        sh "docker stop $greenContainer || true"
+                        sh "docker run -d --name $blueContainer -p 8080:80 sanzer3/angular-app:latest"
+                    }
                 }
             }
         }
