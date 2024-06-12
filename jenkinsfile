@@ -15,7 +15,8 @@ pipeline {
         }
         stage('Deploy') {
             steps {
-                sh 'curl -X POST -d @dist/myapp/index.html http://localhost:8080'
+                // Utiliser start /b pour démarrer la commande en arrière-plan sur Windows
+                bat 'start /b curl -X POST -d @dist/myapp/index.html http://localhost:8080'
             }
         }
     }
