@@ -3,7 +3,7 @@ pipeline {
     stages {
         stage('version') {
             steps {
-                powershell 'pwsh-version'
+                powershell 'Get-Host | Select-Object Version'
             }
         }
         stage('hello') {
@@ -13,4 +13,5 @@ pipeline {
         }
     }
 }
+
 
