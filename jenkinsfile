@@ -1,22 +1,14 @@
 pipeline {
     agent any
     stages {
-        stage('Checkout') {
+        stage('version') {
             steps {
-                git 'https://github.com/SanZer3/angular_app.git'
+                sh 'pwsh-version'
             }
         }
-        stage('Build & Test') {
+        stage('hello') {
             steps {
-                sh 'npm install'
-                sh 'npm run test' // Exécuter vos tests Angular ici
-                sh 'npm run build --prod'
-            }
-        }
-        stage('Deploy') {
-            steps {
-                // Utiliser start /b pour démarrer la commande en arrière-plan sur Windows
-                bat 'start /b curl -X POST -d @dist/myapp/index.html http://localhost:8080'
+                sh 'pwsh hello.ps1'
             }
         }
     }
