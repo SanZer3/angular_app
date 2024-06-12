@@ -6,11 +6,7 @@ pipeline {
                 powershell 'Get-Host | Select-Object Version'
             }
         }
-        stage('hello') {
-            steps {
-                powershell '.\\hello.ps1'
-            }
-        }
+        
     }
 }
 
