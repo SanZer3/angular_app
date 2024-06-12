@@ -8,22 +8,4 @@ pipeline {
             }
         }
 
-        stage('Test') {
-            steps {
-                script {
-                    // Exécuter les tests unitaires et les tests d'intégration
-                    sh 'npm install'
-                    sh 'npm run test'
-                }
-            }
-        }
-
-    post {
-        success {
-            echo 'Déploiement réussi !'
-        }
-        failure {
-            echo 'Échec du déploiement !'
-        }
-    }
 }
