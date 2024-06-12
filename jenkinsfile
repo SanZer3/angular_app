@@ -1,0 +1,22 @@
+pipeline {
+    agent any
+    stages {
+        stage('Checkout') {
+            steps {
+                git 'https://github.com/SanZer3/angular_app.git'
+            }
+        }
+        stage('Build & Test') {
+            steps {
+                sh 'npm install'
+                sh 'npm run test' // Exécuter vos tests Angular ici
+                sh 'npm run build --prod'
+            }
+        }
+        stage('Deploy') {
+            steps {
+                sh 'curl -X POST -d @dist/myapp/index.html http://localhost:8080'
+            }
+        }
+    }
+}
