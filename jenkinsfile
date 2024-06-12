@@ -18,47 +18,6 @@ pipeline {
             }
         }
 
-        stage('Build Docker Image') {
-            steps {
-                // Construire l'image Docker
-                sh 'docker build -t monnomutilisateur/angular-app:latest .'
-            }
-        }
-
-        stage('Deploy Blue or Green Environment') {
-            steps {
-                script {
-                    // Variables pour les noms des conteneurs
-                    def blueContainer = 'angular-blue'
-                    def greenContainer = 'angular-green'
-                    
-                    // Basculer entre les environnements bleu et vert
-                    // Vérifier quel environnement est actuellement déployé
-                    if (docker.inspect(name: blueContainer, returnStatus: true).status == 0) {
-                        // Si l'environnement bleu est actif, déployer sur l'environnement vert
-                        echo 'Déploiement sur l\'environnement vert'
-                        sh "docker stop $blueContainer || true"
-                        sh "docker run -d --name $greenContainer -p 8081:80 monnomutilisateur/angular-app:latest"
-                    } else {
-                        // Sinon, déployer sur l'environnement bleu
-                        echo 'Déploiement sur l\'environnement bleu'
-                        sh "docker stop $greenContainer || true"
-                        sh "docker run -d --name $blueContainer -p 8080:80 monnomutilisateur/angular-app:latest"
-                    }
-                }
-            }
-        }
-
-        stage('Finalize Deployment') {
-            steps {
-                // Effectuez des tests supplémentaires si nécessaire
-                // Nettoyez les ressources inutilisées
-                sh 'docker stop angular-blue'
-                sh 'docker stop angular-green'
-            }
-        }
-    }
-
     post {
         success {
             echo 'Déploiement réussi !'
