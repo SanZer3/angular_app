@@ -1,12 +1,38 @@
 pipeline {
     agent any
+
+    environment {
+        DOCKER_IMAGE = 'angularapp'
+        NGINX_CONTAINER = 'conteneur_nginx'
+    }
+
     stages {
-        stage('version') {
+        stage('Build Docker Image') {
             steps {
-                powershell 'Get-Host | Select-Object Version'
+                script {
+                    // Build Docker image using the specified Dockerfile
+                    docker.build("${DOCKER_IMAGE}", "-f Dockerfile .")
+                }
             }
         }
-        
+
+        stage('Push Docker Image') {
+            steps {
+                script {
+                    // Push Docker image to your Docker registry
+                    docker.withRegistry('https://registry.example.com', 'docker-credentials') {
+                        docker.image("${DOCKER_IMAGE}").push()
+                    }
+                }
+            }
+        }
+
+        stage('Deploy to Nginx') {
+            steps {
+                // Deploy the Docker image to Nginx
+                sh "docker run --name ${NGINX_CONTAINER} -d -p 80:80 ${DOCKER_IMAGE}"
+            }
+        }
     }
 }
 
