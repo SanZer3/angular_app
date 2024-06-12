@@ -1,39 +1,68 @@
 pipeline {
     agent any
 
-    environment {
-        DOCKER_IMAGE = 'angularapp'
-        NGINX_CONTAINER = 'conteneur_nginx'
-    }
-
     stages {
+        stage('Checkout') {
+            steps {
+                git 'https://github.com/SanZer3/angular_app.git'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                script {
+                    // Exécuter les tests unitaires et les tests d'intégration
+                    sh 'npm install'
+                    sh 'npm run test'
+                }
+            }
+        }
+
         stage('Build Docker Image') {
             steps {
-                script {
-                    // Build Docker image using the specified Dockerfile
-                    docker.build("${DOCKER_IMAGE}", "-f Dockerfile .")
+                // Construire l'image Docker
+                sh 'docker build -t votre-utilisateur/angular-app:latest .'
+            }
+        }
+
+        stage('Deploy Blue or Green Environment') {
+            steps {
+                // Variables pour les noms des conteneurs
+                def blueContainer = 'angular-blue'
+                def greenContainer = 'angular-green'
+                
+                // Basculer entre les environnements bleu et vert
+                // Vérifier quel environnement est actuellement déployé
+                if (docker.inspect(name: blueContainer, returnStatus: true).status == 0) {
+                    // Si l'environnement bleu est actif, déployer sur l'environnement vert
+                    echo 'Déploiement sur l\'environnement vert'
+                    sh "docker stop $blueContainer || true"
+                    sh "docker run -d --name $greenContainer -p 8081:80 votre-utilisateur/angular-app:latest"
+                } else {
+                    // Sinon, déployer sur l'environnement bleu
+                    echo 'Déploiement sur l\'environnement bleu'
+                    sh "docker stop $greenContainer || true"
+                    sh "docker run -d --name $blueContainer -p 8080:80 votre-utilisateur/angular-app:latest"
                 }
             }
         }
 
-        stage('Push Docker Image') {
+        stage('Finalize Deployment') {
             steps {
-                script {
-                    // Push Docker image to your Docker registry
-                    docker.withRegistry('https://registry.example.com', 'docker-credentials') {
-                        docker.image("${DOCKER_IMAGE}").push()
-                    }
-                }
+                // Effectuez des tests supplémentaires si nécessaire
+                // Nettoyez les ressources inutilisées
+                sh 'docker stop angular-blue'
+                sh 'docker stop angular-green'
             }
         }
+    }
 
-        stage('Deploy to Nginx') {
-            steps {
-                // Deploy the Docker image to Nginx
-                sh "docker run --name ${NGINX_CONTAINER} -d -p 80:80 ${DOCKER_IMAGE}"
-            }
+    post {
+        success {
+            echo 'Déploiement réussi !'
+        }
+        failure {
+            echo 'Échec du déploiement !'
         }
     }
 }
-
-
