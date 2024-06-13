@@ -67,11 +67,6 @@ pipeline {
                     fi
                     '''
                     
-                    // Step 4: Optionally, keep the old container running for rollback
-                    sh '''
-                    # Rename green container to blue for the next deployment
-                    docker rename green-angular-app blue-angular-app || true
-                    '''
                 }
             }
         }
