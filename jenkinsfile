@@ -1,4 +1,4 @@
-chofi had lpipline bali fiha kolchi dakchi pipeline {
+pipeline {
     agent any
     environment {
         DOCKER_IMAGE = 'angularapp'
