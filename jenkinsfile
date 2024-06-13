@@ -1,11 +1,121 @@
-pipeline {
+chofi had lpipline bali fiha kolchi dakchi pipeline {
     agent any
-
+    environment {
+        DOCKER_IMAGE = 'your-angular-app'
+        DOCKER_TAG = "latest"
+        DOCKER_REGISTRY = "your-docker-registry"
+    }
     stages {
-        stage('Checkout') {
+        stage('Clone Repository') {
             steps {
-                git 'https://github.com/SanZer3/angular_app.git'
+                // Étape 1: Cloner le dépôt Git contenant le code source de l'application Angular
+                git 'https://github.com/your-repo-url'
             }
         }
+        stage('Install Dependencies') {
+            steps {
+                script {
+                    // Étape 2: Installer les dépendances nécessaires pour l'application Angular
+                    docker.image('node:14').inside {
+                        sh 'npm install'
+                    }
+                }
+            }
+        }
+        stage('Run Unit Tests') {
+            steps {
+                script {
+                    // Étape 3: Exécuter les tests unitaires de l'application
+                    docker.image('node:14').inside {
+                        sh 'npm test'
+                    }
+                }
+            }
+        }
+        stage('Build Angular Application') {
+            steps {
+                script {
+                    // Étape 4: Construire l'application Angular pour la production
+                    docker.image('node:14').inside {
+                        sh 'npm run build --prod'
+                    }
+                }
+            }
+        }
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    // Étape 5: Construire l'image Docker de l'application Angular
+                    docker.build("${DOCKER_IMAGE}:${DOCKER_TAG}")
+                }
+            }
+        }
+        stage('Run Docker Container') {
+            steps {
+                script {
+                    // Étape 6: Créer et exécuter un conteneur Docker à partir de l'image Docker construite
+                    def dockerRunCmd = "docker run -d -p 8080:80 --name angular-app ${DOCKER_IMAGE}:${DOCKER_TAG}"
+                    sh "${dockerRunCmd}"
+                    
+                    // Attendre que le conteneur démarre
+                    sh 'sleep 10'
+                    
+                    // Vérifier que le conteneur est en cours d'exécution
+                    sh 'docker ps | grep angular-app'
+                }
+            }
+        }
+        stage('Push Docker Image') {
+            steps {
+                script {
+                    // Étape 7: Pousser l'image Docker vers un registre Docker
+                    docker.withRegistry("https://${DOCKER_REGISTRY}", 'docker-credentials') {
+                        docker.image("${DOCKER_IMAGE}:${DOCKER_TAG}").push()
+                    }
+                }
+            }
+        }
+        stage('Blue-Green Deployment') {
+            steps {
+                script {
+                    // Étape 8: Déploiement bleu-vert
+                    
+                    // Step 1: Deploy the new container (green)
+                    def greenContainer = docker.image("${DOCKER_IMAGE}:${DOCKER_TAG}").run("-d -p 8081:80 --name green-angular-app")
 
+                    // Step 2: Wait for the new container to start
+                    sh 'sleep 10'
+                    
+                    // Step 3: Test the new container to ensure it's running correctly
+                    sh '''
+                    if ! curl -f http://localhost:8081; then
+                        docker logs green-angular-app
+                        docker stop green-angular-app
+                        docker rm green-angular-app
+                        error("New container failed to start correctly")
+                    fi
+                    '''
+                    
+                    // Step 4: Update Nginx to switch traffic to the new container
+                    sh '''
+                    # Update Nginx configuration to point to the new container
+                    sed -i 's/localhost:8080/localhost:8081/g' /etc/nginx/nginx.conf
+                    docker exec nginx-container nginx -s reload
+                    '''
+                    
+                    // Step 5: Optionally, keep the old container running for rollback
+                    sh '''
+                    # Rename green container to blue for the next deployment
+                    docker rename green-angular-app blue-angular-app || true
+                    '''
+                }
+            }
+        }
+    }
+    post {
+        always {
+            // Nettoyer l'espace de travail après chaque build
+            cleanWs()
+        }
+    }
 }
