@@ -1,9 +1,8 @@
 chofi had lpipline bali fiha kolchi dakchi pipeline {
     agent any
     environment {
-        DOCKER_IMAGE = 'your-angular-app'
-        DOCKER_TAG = "latest"
-        DOCKER_REGISTRY = "your-docker-registry"
+        DOCKER_IMAGE = 'angularapp'
+        
     }
     stages {
         stage('Clone Repository') {
@@ -16,7 +15,7 @@ chofi had lpipline bali fiha kolchi dakchi pipeline {
             steps {
                 script {
                     // Étape 2: Installer les dépendances nécessaires pour l'application Angular
-                    docker.image('node:14').inside {
+                    docker.image('node:latest').inside {
                         sh 'npm install'
                     }
                 }
@@ -36,7 +35,7 @@ chofi had lpipline bali fiha kolchi dakchi pipeline {
             steps {
                 script {
                     // Étape 4: Construire l'application Angular pour la production
-                    docker.image('node:14').inside {
+                    docker.image('node:latest').inside {
                         sh 'npm run build --prod'
                     }
                 }
@@ -46,7 +45,7 @@ chofi had lpipline bali fiha kolchi dakchi pipeline {
             steps {
                 script {
                     // Étape 5: Construire l'image Docker de l'application Angular
-                    docker.build("${DOCKER_IMAGE}:${DOCKER_TAG}")
+                    docker.build("${DOCKER_IMAGE}")
                 }
             }
         }
@@ -54,24 +53,23 @@ chofi had lpipline bali fiha kolchi dakchi pipeline {
             steps {
                 script {
                     // Étape 6: Créer et exécuter un conteneur Docker à partir de l'image Docker construite
-                    def dockerRunCmd = "docker run -d -p 8080:80 --name angular-app ${DOCKER_IMAGE}:${DOCKER_TAG}"
+                    def dockerRunCmd = "docker run -d -p 8080:80 --name angular-app ${DOCKER_IMAGE}}"
                     sh "${dockerRunCmd}"
                     
                     // Attendre que le conteneur démarre
                     sh 'sleep 10'
                     
                     // Vérifier que le conteneur est en cours d'exécution
-                    sh 'docker ps | grep angular-app'
+                    sh 'docker ps | grep angular_app'
                 }
             }
         }
         stage('Push Docker Image') {
             steps {
                 script {
-                    // Étape 7: Pousser l'image Docker vers un registre Docker
-                    docker.withRegistry("https://${DOCKER_REGISTRY}", 'docker-credentials') {
-                        docker.image("${DOCKER_IMAGE}:${DOCKER_TAG}").push()
-                    }
+                    
+                    sh 'docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD '          
+                    sh "docker push ${DOCKER_IMAGE}"
                 }
             }
         }
@@ -81,14 +79,14 @@ chofi had lpipline bali fiha kolchi dakchi pipeline {
                     // Étape 8: Déploiement bleu-vert
                     
                     // Step 1: Deploy the new container (green)
-                    def greenContainer = docker.image("${DOCKER_IMAGE}:${DOCKER_TAG}").run("-d -p 8081:80 --name green-angular-app")
+                    def greenContainer = docker.image("${DOCKER_IMAGE}").run("-d -p 8080:80 --name green-angular-app")
 
                     // Step 2: Wait for the new container to start
                     sh 'sleep 10'
                     
                     // Step 3: Test the new container to ensure it's running correctly
                     sh '''
-                    if ! curl -f http://localhost:8081; then
+                    if ! curl -f http://localhost:8080; then
                         docker logs green-angular-app
                         docker stop green-angular-app
                         docker rm green-angular-app
@@ -99,7 +97,7 @@ chofi had lpipline bali fiha kolchi dakchi pipeline {
                     // Step 4: Update Nginx to switch traffic to the new container
                     sh '''
                     # Update Nginx configuration to point to the new container
-                    sed -i 's/localhost:8080/localhost:8081/g' /etc/nginx/nginx.conf
+                    sed -i 's/localhost:8080/localhost:8080/g' /etc/nginx/nginx.conf
                     docker exec nginx-container nginx -s reload
                     '''
                     
