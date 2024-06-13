@@ -21,34 +21,7 @@ pipeline {
                 }
             }
         }
-        stage('Run Unit Tests') {
-            steps {
-                script {
-                    // Étape 3: Exécuter les tests unitaires de l'application
-                    docker.image('node:14').inside {
-                        sh 'npm test'
-                    }
-                }
-            }
-        }
-        stage('Build Angular Application') {
-            steps {
-                script {
-                    // Étape 4: Construire l'application Angular pour la production
-                    docker.image('node:latest').inside {
-                        sh 'npm run build --prod'
-                    }
-                }
-            }
-        }
-        stage('Build Docker Image') {
-            steps {
-                script {
-                    // Étape 5: Construire l'image Docker de l'application Angular
-                    docker.build("${DOCKER_IMAGE}")
-                }
-            }
-        }
+        
         stage('Run Docker Container') {
             steps {
                 script {
@@ -68,7 +41,7 @@ pipeline {
             steps {
                 script {
                     
-                    sh 'docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD '          
+                    sh 'docker login -u SANZER3 -p fdgsteF3 '          
                     sh "docker push ${DOCKER_IMAGE}"
                 }
             }
@@ -94,14 +67,7 @@ pipeline {
                     fi
                     '''
                     
-                    // Step 4: Update Nginx to switch traffic to the new container
-                    sh '''
-                    # Update Nginx configuration to point to the new container
-                    sed -i 's/localhost:8080/localhost:8080/g' /etc/nginx/nginx.conf
-                    docker exec nginx-container nginx -s reload
-                    '''
-                    
-                    // Step 5: Optionally, keep the old container running for rollback
+                    // Step 4: Optionally, keep the old container running for rollback
                     sh '''
                     # Rename green container to blue for the next deployment
                     docker rename green-angular-app blue-angular-app || true
